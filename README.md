@@ -2,6 +2,8 @@
 
 JobTracker is a local-first web application for turning pasted LinkedIn job-alert emails into a structured job-search workspace.
 
+![JobTracker dashboard showing tracked jobs and job-market insights](docs/jobtracker-dashboard.jpg)
+
 It intentionally does not scrape LinkedIn. Alert emails are imported by pasting them into the application. For a promising role, open its saved LinkedIn link, copy the expanded job posting, and use **Paste additional details** inside that job.
 
 ## Start the application
