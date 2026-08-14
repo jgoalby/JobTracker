@@ -104,10 +104,11 @@ h3 { margin: 0; font-size: 15px; letter-spacing: -.015em; }
 .search-box input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 12px; }
 .compact-control { height: 42px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 0 10px 0 13px; color: #7b8782; font-size: 10px; font-weight: 700; }
 .compact-control select { border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 11px; font-weight: 650; }
-.toggle-control { margin-left: 4px; display: flex; align-items: center; gap: 8px; cursor: pointer; color: #6c7873; font-size: 11px; font-weight: 650; white-space: nowrap; }
-.toggle-control input { position: absolute; opacity: 0; }
+.toggle-control { position: relative; margin-left: 4px; display: flex; align-items: center; gap: 8px; cursor: pointer; color: #6c7873; font-size: 11px; font-weight: 650; white-space: nowrap; }
+.toggle-control input { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; opacity: 0; }
 .toggle-control span { width: 30px; height: 18px; border-radius: 10px; background: #cdd5d1; padding: 3px; transition: background .15s; }
 .toggle-control span::after { content: ''; display: block; width: 12px; height: 12px; border-radius: 50%; background: white; transition: transform .15s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.toggle-control input:focus-visible + span { outline: 2px solid #6f9b8b; outline-offset: 2px; }
 .toggle-control input:checked + span { background: var(--forest); }
 .toggle-control input:checked + span::after { transform: translateX(12px); }
 
