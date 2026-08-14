@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A private, local-first tracker for jobs found in LinkedIn alerts.">
+  <title>JobTracker</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">JT</span>
+        <span>
+          <strong>JobTracker</strong>
+          <small>Private workspace</small>
+        </span>
+      </div>
+
+      <nav aria-label="Primary navigation">
+        <button class="nav-item active" type="button" data-view="jobs">
+          <span aria-hidden="true">▦</span> All jobs
+        </button>
+        <button class="nav-item" id="sidebar-import" type="button">
+          <span aria-hidden="true">＋</span> Import alert
+        </button>
+        <button class="nav-item" id="manage-fields" type="button">
+          <span aria-hidden="true">⌘</span> Custom fields
+        </button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <span class="privacy-dot" aria-hidden="true"></span>
+        <p><strong>Stored on this Mac</strong><br><span>Your records stay in a local SQLite file.</span></p>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">JOB SEARCH WORKSPACE</p>
+          <h1>Your opportunities</h1>
+        </div>
+        <div class="topbar-actions">
+          <a class="button ghost" href="/api/export" download>Export backup</a>
+          <button class="button primary" id="open-import" type="button">Import LinkedIn alert</button>
+        </div>
+      </header>
+
+      <section class="stats" aria-label="Job search summary">
+        <button class="stat-card stat-filter" id="filter-needs-details" type="button" aria-pressed="false">
+          <span>Needs details</span>
+          <strong id="stat-needs-details">0</strong>
+          <small>missing full posting</small>
+        </button>
+        <button class="stat-card stat-filter active" id="filter-all-jobs" type="button" aria-pressed="true">
+          <span>Tracked</span>
+          <strong id="stat-total">0</strong>
+          <small>all opportunities</small>
+        </button>
+        <button class="stat-card stat-filter" id="filter-saved" type="button" aria-pressed="false">
+          <span>Saved</span>
+          <strong id="stat-saved">0</strong>
+          <small>worth exploring</small>
+        </button>
+        <button class="stat-card stat-filter" id="filter-applied" type="button" aria-pressed="false">
+          <span>Applied</span>
+          <strong id="stat-applied">0</strong>
+          <small>applications sent</small>
+        </button>
+        <button class="stat-card stat-filter" id="filter-in-progress" type="button" aria-pressed="false">
+          <span>In progress</span>
+          <strong id="stat-progress">0</strong>
+          <small>screens & interviews</small>
+        </button>
+      </section>
+
+      <section id="insights-section" class="insights-section" aria-labelledby="insights-title">
+        <header class="insights-header">
+          <div>
+            <p class="eyebrow">FROM YOUR CAPTURED POSTINGS</p>
+            <h2 id="insights-title">Job market insights</h2>
+          </div>
+          <p id="insights-sample" class="insights-sample"></p>
+        </header>
+        <div id="market-insights" class="insights-grid"></div>
+      </section>
+
+      <section class="workspace">
+        <div class="toolbar">
+          <label class="search-box">
+            <span class="sr-only">Search jobs</span>
+            <span aria-hidden="true">⌕</span>
+            <input id="search" type="search" placeholder="Search roles, companies, locations…">
+          </label>
+          <label class="compact-control">
+            <span>Status</span>
+            <select id="status-filter">
+              <option value="">All statuses</option>
+              <option value="saved">Saved</option>
+              <option value="considering">Considering</option>
+              <option value="applied">Applied</option>
+              <option value="screening">Screening</option>
+              <option value="interviewing">Interviewing</option>
+              <option value="offer">Offer</option>
+              <option value="rejected">Rejected</option>
+              <option value="archived">Archived</option>
+            </select>
+          </label>
+          <label class="compact-control">
+            <span>Interest</span>
+            <select id="interest-filter">
+              <option value="">All interest</option>
+              <option value="unreviewed">Unreviewed</option>
+              <option value="follow_up">Follow up</option>
+              <option value="not_interested">Not interested</option>
+            </select>
+          </label>
+          <label class="compact-control">
+            <span>Sort</span>
+            <select id="sort-jobs">
+              <option value="created_desc">Newest added</option>
+              <option value="posting_desc">Newest posting</option>
+              <option value="updated_desc">Recently updated</option>
+              <option value="company_asc">Company A–Z</option>
+              <option value="title_asc">Title A–Z</option>
+            </select>
+          </label>
+          <label class="toggle-control">
+            <input id="group-company" type="checkbox" checked>
+            <span aria-hidden="true"></span>
+            Group by company
+          </label>
+        </div>
+
+        <div id="job-list" class="job-list" aria-live="polite"></div>
+
+        <div id="empty-state" class="empty-state hidden">
+          <span class="empty-illustration" aria-hidden="true">↗</span>
+          <p class="eyebrow">START YOUR SHORTLIST</p>
+          <h2>Turn an alert into a useful pipeline</h2>
+          <p>Paste a LinkedIn job-alert email. You’ll review the extracted jobs before anything is saved.</p>
+          <button class="button primary" id="empty-import" type="button">Import your first alert</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="import-dialog" class="modal import-modal">
+    <form method="dialog" class="modal-frame" id="import-shell">
+      <header class="modal-header">
+        <div>
+          <p class="eyebrow">NEW SOURCE</p>
+          <h2>Import a LinkedIn alert</h2>
+          <p>Copy the email from your inbox and paste it below. Formatting helps preserve its job links.</p>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="Close import dialog" type="submit">×</button>
+      </header>
+
+      <div class="modal-body">
+        <section id="import-paste-step">
+          <div id="import-paste" class="paste-zone" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Paste the complete LinkedIn alert here…"></div>
+          <div class="paste-hint">
+            <span><kbd>⌘</kbd> <kbd>V</kbd> to paste</span>
+            <span id="import-paste-status">Nothing pasted yet</span>
+          </div>
+        </section>
+
+        <section id="import-preview-step" class="hidden">
+          <div class="preview-heading">
+            <div>
+              <p class="eyebrow">REVIEW BEFORE SAVING</p>
+              <h3 id="preview-title">Jobs found</h3>
+            </div>
+            <button id="back-to-paste" class="button ghost small" type="button">Replace source</button>
+          </div>
+          <div id="import-warnings"></div>
+          <div id="import-preview-list" class="preview-list"></div>
+        </section>
+      </div>
+
+      <footer class="modal-footer">
+        <button class="button ghost" value="cancel" type="submit">Cancel</button>
+        <button class="button primary" id="analyze-import" type="button">Analyze email</button>
+        <button class="button primary hidden" id="commit-import" type="button">Import selected jobs</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="job-dialog" class="modal job-modal">
+    <form method="dialog" class="modal-frame" id="job-shell">
+      <header class="modal-header job-modal-header">
+        <div class="job-heading">
+          <span id="job-company-monogram" class="company-monogram">–</span>
+          <div>
+            <p id="job-company-kicker" class="eyebrow">COMPANY</p>
+            <h2 id="job-dialog-title">Job title</h2>
+            <p id="job-dialog-subtitle">Location</p>
+          </div>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="Close job dialog" type="submit">×</button>
+      </header>
+
+      <div class="modal-body job-body">
+        <section class="job-form-grid">
+          <label>Position title<input name="title" required></label>
+          <div class="url-control">
+            <label for="job-company">Company</label>
+            <div class="url-field">
+              <a id="open-company-link" class="button secondary open-job-link hidden" href="#" target="_blank" rel="noopener noreferrer">Open company ↗</a>
+              <input id="job-company" name="company">
+            </div>
+          </div>
+          <label>Location<input name="location"></label>
+          <label>Status
+            <select name="status">
+              <option value="saved">Saved</option>
+              <option value="considering">Considering</option>
+              <option value="applied">Applied</option>
+              <option value="screening">Screening</option>
+              <option value="interviewing">Interviewing</option>
+              <option value="offer">Offer</option>
+              <option value="rejected">Rejected</option>
+              <option value="archived">Archived</option>
+            </select>
+          </label>
+          <label>Initial interest
+            <select name="interestStatus">
+              <option value="unreviewed">Unreviewed</option>
+              <option value="follow_up">Follow up</option>
+              <option value="not_interested">Not interested</option>
+            </select>
+          </label>
+          <label>Interest note<input name="interestNote" maxlength="240" placeholder="Why, or what to follow up on…"></label>
+          <label>Work arrangement<input name="workArrangement" placeholder="Remote, hybrid, on-site"></label>
+          <label>Employment type<input name="employmentType" placeholder="Full-time, contract…"></label>
+          <label>Seniority<input name="seniority"></label>
+          <label>Salary<input name="salary"></label>
+          <div class="span-two url-control">
+            <label for="job-url">LinkedIn or job URL</label>
+            <div class="url-field">
+              <a id="open-job-link" class="button secondary open-job-link hidden" href="#" target="_blank" rel="noopener noreferrer">Open job ↗</a>
+              <input id="job-url" name="jobUrl" type="url">
+            </div>
+          </div>
+          <label class="span-two">Personal notes<textarea name="notes" rows="4" placeholder="Contacts, impressions, follow-up ideas…"></textarea></label>
+        </section>
+
+        <section id="custom-field-section" class="detail-section hidden">
+          <div class="section-heading"><h3>Custom fields</h3><button id="fields-from-job" class="text-button" type="button">Manage fields</button></div>
+          <div id="job-custom-fields" class="job-form-grid"></div>
+        </section>
+
+        <section id="structured-detail-section" class="detail-section hidden">
+          <div class="section-heading">
+            <div><h3>Captured details</h3><p>Structured facts extracted from the pasted listing.</p></div>
+          </div>
+          <div id="structured-job-details" class="structured-details"></div>
+        </section>
+
+        <section id="job-description-section" class="detail-section">
+          <div class="section-heading">
+            <div><h3 id="job-description-title">Job description</h3><p id="job-description-subtitle">Saved here even if the listing disappears.</p></div>
+            <button id="toggle-enrich" class="button secondary small" type="button">Paste additional details</button>
+          </div>
+          <textarea id="job-description-editor" class="description-editor" name="description" rows="12" placeholder="No full description has been added yet."></textarea>
+
+          <div id="enrich-panel" class="enrich-panel hidden">
+            <div>
+              <p class="eyebrow">ENRICH THIS JOB</p>
+              <h3>Paste the LinkedIn job details</h3>
+              <p>Expand the full posting on LinkedIn, copy it, and paste it here. The selected job will be the destination.</p>
+            </div>
+            <div id="detail-paste" class="paste-zone compact" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Paste job and company details here…"></div>
+            <div id="enrich-warnings"></div>
+            <div id="enrich-preview" class="hidden"></div>
+            <div class="inline-actions">
+              <button id="analyze-details" class="button secondary" type="button">Analyze details</button>
+              <button id="apply-details" class="button primary hidden" type="button">Apply these details</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="detail-section source-section">
+          <div class="section-heading"><h3>Source history</h3><button id="toggle-sources" class="text-button" type="button">Show sources</button></div>
+          <div id="job-sources" class="source-list hidden"></div>
+        </section>
+      </div>
+
+      <footer class="modal-footer">
+        <span id="job-save-state" class="save-state">Changes are saved when you choose Save.</span>
+        <button class="button ghost" value="cancel" type="submit">Cancel</button>
+        <button class="button primary" id="save-job" type="button">Save changes</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="fields-dialog" class="modal fields-modal">
+    <form method="dialog" class="modal-frame">
+      <header class="modal-header">
+        <div><p class="eyebrow">PERSONALIZE YOUR TRACKER</p><h2>Custom fields</h2><p>Add information that matters to your particular search.</p></div>
+        <button class="icon-button" value="cancel" aria-label="Close custom fields dialog" type="submit">×</button>
+      </header>
+      <div class="modal-body">
+        <div id="field-list" class="field-list"></div>
+        <div class="new-field-card">
+          <h3>Add a field</h3>
+          <div class="job-form-grid">
+            <label>Label<input id="field-label" placeholder="e.g. Interest level"></label>
+            <label>Type
+              <select id="field-type">
+                <option value="text">Short text</option>
+                <option value="long_text">Long text</option>
+                <option value="number">Number</option>
+                <option value="date">Date</option>
+                <option value="checkbox">Checkbox</option>
+                <option value="select">Select list</option>
+                <option value="url">URL</option>
+              </select>
+            </label>
+            <label id="field-options-label" class="span-two hidden">Options<input id="field-options" placeholder="High, Medium, Low"></label>
+          </div>
+          <button id="create-field" class="button secondary" type="button">Add custom field</button>
+        </div>
+      </div>
+      <footer class="modal-footer"><button class="button primary" value="cancel" type="submit">Done</button></footer>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js" type="module"></script>
+</body>
+</html>
