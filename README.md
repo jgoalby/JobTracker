@@ -22,18 +22,17 @@ Node 22 may print an `ExperimentalWarning` for its built-in SQLite module. The a
 
 ## Typical workflow
 
-1. Choose **Import LinkedIn alert**.
-2. Copy an alert email from your inbox and paste it into the import area.
-3. Review and correct the jobs detected by the parser.
-4. Import the selected jobs. Repeated LinkedIn job IDs are updated rather than duplicated.
-5. Open a job card and use **Open job ↗** to view its listing in a new tab.
-6. Copy the expanded listing and paste it into **Add job details**. For an existing description, choose **Paste additional details**.
-7. Review **Job market insights** for recurring skills, experience expectations, work models, and data coverage. Insight chips filter the tracked jobs.
-8. Sort jobs by date added, posting date, update date, company, or title; company grouping can remain on with any sort.
-9. Record an application status separately from initial interest. Mark a role **Follow up** or **Not interested** and optionally keep a short reason.
-10. Click the summary cards to filter saved, applied, or in-progress jobs, or use the toolbar’s status and interest filters together.
-11. Add notes or create custom fields for anything else you want to track.
-12. Use **Export backup** periodically to download a readable JSON backup.
+1. For a job found on its own, choose **Add a job**, paste the complete posting, review the extracted information, and save it with its description and company details already attached.
+2. For an alert email, choose **Import LinkedIn alert**, paste the email, and review the jobs detected by the parser.
+3. Import the selected jobs. Repeated LinkedIn job IDs are updated rather than duplicated.
+4. Open a job card and use **Open job ↗** to view its listing in a new tab.
+5. For a job imported from an alert, copy the expanded listing and paste it into **Add job details**. For an existing description, choose **Paste additional details**.
+6. Review **Job market insights** for recurring skills, experience expectations, work models, and data coverage. Insight chips filter the tracked jobs.
+7. Sort jobs by date added, posting date, update date, company, or title; company grouping can remain on with any sort.
+8. Record an application status separately from initial interest. Mark a role **Follow up** or **Not interested** and optionally keep a short reason.
+9. Click the summary cards to filter saved, applied, or in-progress jobs, or use the toolbar’s status and interest filters together.
+10. Add notes or create custom fields for anything else you want to track.
+11. Use **Export backup** periodically to download a readable JSON backup.
 
 Job-seeker insights are extracted locally with transparent keyword and text-pattern matching. They update when full job details are applied and do not send posting content to an external service.
 

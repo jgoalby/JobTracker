@@ -4,6 +4,7 @@ const state = {
   selectedJob: null,
   importSource: { plainText: '', html: '' },
   importResult: null,
+  importMode: 'alert',
   detailSource: { plainText: '', html: '' },
   enrichResult: null,
   quickFilter: 'all',
@@ -323,15 +324,28 @@ function setQuickFilter(filter) {
   renderJobs();
 }
 
-function openImport() {
+function openImport(mode = 'alert') {
+  state.importMode = mode === 'details' ? 'details' : 'alert';
+  const isSingleJob = state.importMode === 'details';
   state.importSource = { plainText: '', html: '' };
   state.importResult = null;
+  $('#import-dialog-title').textContent = isSingleJob ? 'Add a job posting' : 'Import a LinkedIn alert';
+  $('#import-dialog-subtitle').textContent = isSingleJob
+    ? 'Copy the complete job page and paste it below. Job details, company information, and skills will be captured together.'
+    : 'Copy the email from your inbox and paste it below. Formatting helps preserve its job links.';
   $('#import-paste').textContent = '';
+  $('#import-paste').dataset.placeholder = isSingleJob
+    ? 'Paste the complete job posting here…'
+    : 'Paste the complete LinkedIn alert here…';
   $('#import-paste-status').textContent = 'Nothing pasted yet';
   $('#import-paste-step').classList.remove('hidden');
   $('#import-preview-step').classList.add('hidden');
   $('#analyze-import').classList.remove('hidden');
+  $('#analyze-import').textContent = isSingleJob ? 'Analyze job' : 'Analyze email';
+  $('#analyze-import').dataset.label = $('#analyze-import').textContent;
   $('#commit-import').classList.add('hidden');
+  $('#commit-import').textContent = isSingleJob ? 'Add this job' : 'Import selected jobs';
+  $('#commit-import').dataset.label = $('#commit-import').textContent;
   $('#import-dialog').showModal();
   setTimeout(() => $('#import-paste').focus(), 30);
 }
@@ -342,8 +356,9 @@ function renderWarnings(container, warnings = []) {
 
 function renderImportPreview(result) {
   const jobs = result.jobs || (result.details ? [result.details] : []);
+  const isSingleJob = state.importMode === 'details';
   state.importResult = { ...result, jobs };
-  $('#preview-title').textContent = `${jobs.length} ${jobs.length === 1 ? 'job' : 'jobs'} found`;
+  $('#preview-title').textContent = isSingleJob ? 'Review this job' : `${jobs.length} ${jobs.length === 1 ? 'job' : 'jobs'} found`;
   renderWarnings($('#import-warnings'), result.warnings || []);
   $('#import-preview-list').innerHTML = jobs.map((job, index) => `
     <article class="preview-card" data-preview-index="${index}">
@@ -352,7 +367,17 @@ function renderImportPreview(result) {
         <label>Position<input data-field="title" value="${escapeHtml(job.title || '')}"></label>
         <label>Company<input data-field="company" value="${escapeHtml(job.company || '')}"></label>
         <label>Location<input data-field="location" value="${escapeHtml(job.location || '')}"></label>
-        <label>LinkedIn URL<input data-field="jobUrl" type="url" value="${escapeHtml(job.jobUrl || '')}"></label>
+        <label class="span-two">${isSingleJob ? 'Job URL' : 'LinkedIn URL'}<input data-field="jobUrl" type="url" value="${escapeHtml(job.jobUrl || '')}"></label>
+        ${isSingleJob ? `
+          <label>Work arrangement<input data-field="workArrangement" value="${escapeHtml(job.workArrangement || '')}"></label>
+          <label>Employment type<input data-field="employmentType" value="${escapeHtml(job.employmentType || '')}"></label>
+          <label>Seniority<input data-field="seniority" value="${escapeHtml(job.seniority || '')}"></label>
+          <label>Salary<input data-field="salary" value="${escapeHtml(job.salary || '')}"></label>
+          <div class="preview-capture-summary span-two">
+            <strong>Ready to save with full details</strong>
+            <span>${(job.description || '').length.toLocaleString()} description characters · ${(job.structuredDetails?.sections || []).length} structured sections${job.companyDetails?.description ? ' · company profile' : ''}</span>
+          </div>
+        ` : ''}
       </div>
     </article>
   `).join('');
@@ -365,14 +390,14 @@ function renderImportPreview(result) {
 async function analyzeImport() {
   const button = $('#analyze-import');
   if (!state.importSource.plainText && !state.importSource.html) {
-    toast('Paste a LinkedIn alert first.', 'error');
+    toast(state.importMode === 'details' ? 'Paste a complete job posting first.' : 'Paste a LinkedIn alert first.', 'error');
     return;
   }
   setBusy(button, true, 'Analyzing…');
   try {
     const result = await api('/api/parse', {
       method: 'POST',
-      body: JSON.stringify({ ...state.importSource, mode: 'alert' }),
+      body: JSON.stringify({ ...state.importSource, mode: state.importMode }),
     });
     renderImportPreview(result);
   } catch (error) {
@@ -386,14 +411,9 @@ function collectImportJobs() {
   return $$('.preview-card', $('#import-preview-list')).flatMap((card) => {
     if (!$('input[type="checkbox"]', card).checked) return [];
     const original = state.importResult.jobs[Number(card.dataset.previewIndex)];
-    const value = (field) => $(`[data-field="${field}"]`, card).value.trim();
-    return [{
-      ...original,
-      title: value('title'),
-      company: value('company'),
-      location: value('location'),
-      jobUrl: value('jobUrl'),
-    }];
+    const edited = { ...original };
+    $$('[data-field]', card).forEach((input) => { edited[input.dataset.field] = input.value.trim(); });
+    return [edited];
   });
 }
 
@@ -401,13 +421,14 @@ async function commitImport() {
   const jobs = collectImportJobs();
   if (!jobs.length) return toast('Select at least one job to import.', 'error');
   const button = $('#commit-import');
+  const importMode = state.importMode;
   setBusy(button, true, 'Importing…');
   try {
     const { results } = await api('/api/import', {
       method: 'POST',
       body: JSON.stringify({
         ...state.importSource,
-        sourceType: state.importResult.detectedType || 'pasted_alert',
+        sourceType: importMode === 'details' ? 'pasted_job_details' : (state.importResult.detectedType || 'pasted_alert'),
         jobs,
       }),
     });
@@ -416,6 +437,7 @@ async function commitImport() {
     const created = results.filter((result) => result.action === 'created').length;
     const updated = results.length - created;
     toast(`${created} job${created === 1 ? '' : 's'} added${updated ? ` · ${updated} existing updated` : ''}.`);
+    if (importMode === 'details' && results.length === 1) openJob(results[0].job.id);
   } catch (error) {
     toast(error.message, 'error');
   } finally {
@@ -743,7 +765,10 @@ async function removeField(id) {
 capturePaste($('#import-paste'), 'importSource');
 capturePaste($('#detail-paste'), 'detailSource');
 
-['#open-import', '#sidebar-import', '#empty-import'].forEach((selector) => $(selector).addEventListener('click', openImport));
+['#open-import', '#sidebar-import', '#empty-import'].forEach((selector) =>
+  $(selector).addEventListener('click', () => openImport('alert')));
+['#open-single-job', '#sidebar-add-job', '#empty-add-job'].forEach((selector) =>
+  $(selector).addEventListener('click', () => openImport('details')));
 $('#manage-fields').addEventListener('click', openFields);
 $('#fields-from-job').addEventListener('click', openFields);
 $('#analyze-import').addEventListener('click', analyzeImport);

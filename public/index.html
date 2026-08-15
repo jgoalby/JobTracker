@@ -23,7 +23,10 @@
           <span aria-hidden="true">▦</span> All jobs
         </button>
         <button class="nav-item" id="sidebar-import" type="button">
-          <span aria-hidden="true">＋</span> Import alert
+          <span aria-hidden="true">⇩</span> Import alert
+        </button>
+        <button class="nav-item" id="sidebar-add-job" type="button">
+          <span aria-hidden="true">＋</span> Add a job
         </button>
         <button class="nav-item" id="manage-fields" type="button">
           <span aria-hidden="true">⌘</span> Custom fields
@@ -44,7 +47,8 @@
         </div>
         <div class="topbar-actions">
           <a class="button ghost" href="/api/export" download>Export backup</a>
-          <button class="button primary" id="open-import" type="button">Import LinkedIn alert</button>
+          <button class="button ghost" id="open-import" type="button">Import LinkedIn alert</button>
+          <button class="button primary" id="open-single-job" type="button">Add a job</button>
         </div>
       </header>
 
@@ -139,9 +143,12 @@
         <div id="empty-state" class="empty-state hidden">
           <span class="empty-illustration" aria-hidden="true">↗</span>
           <p class="eyebrow">START YOUR SHORTLIST</p>
-          <h2>Turn an alert into a useful pipeline</h2>
-          <p>Paste a LinkedIn job-alert email. You’ll review the extracted jobs before anything is saved.</p>
-          <button class="button primary" id="empty-import" type="button">Import your first alert</button>
+          <h2>Build a useful job pipeline</h2>
+          <p>Paste one complete job posting or import a LinkedIn alert. You’ll review what was extracted before anything is saved.</p>
+          <div class="empty-actions">
+            <button class="button primary" id="empty-add-job" type="button">Add a job</button>
+            <button class="button ghost" id="empty-import" type="button">Import an alert</button>
+          </div>
         </div>
       </section>
     </main>
@@ -152,8 +159,8 @@
       <header class="modal-header">
         <div>
           <p class="eyebrow">NEW SOURCE</p>
-          <h2>Import a LinkedIn alert</h2>
-          <p>Copy the email from your inbox and paste it below. Formatting helps preserve its job links.</p>
+          <h2 id="import-dialog-title">Import a LinkedIn alert</h2>
+          <p id="import-dialog-subtitle">Copy the email from your inbox and paste it below. Formatting helps preserve its job links.</p>
         </div>
         <button class="icon-button" value="cancel" aria-label="Close import dialog" type="submit">×</button>
       </header>

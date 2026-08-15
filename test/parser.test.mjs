@@ -190,6 +190,30 @@ test('ignores navigation when LinkedIn uses its company-logo page header', async
   assert.equal(result.details.companyDetails.linkedinUrl, 'https://www.linkedin.com/company/intel-corporation/');
 });
 
+test('parses a standalone LinkedIn posting with a comma in its title', async () => {
+  const result = parseJobDetails({ plainText: await fixture('linkedin-job-page-standalone.txt') });
+  const { details } = result;
+
+  assert.equal(details.title, 'Senior Software Engineer, AI Transformation');
+  assert.equal(details.company, 'Northstar Health');
+  assert.equal(details.location, 'United States');
+  assert.equal(details.workArrangement, 'Remote');
+  assert.equal(details.employmentType, 'Full-time');
+  assert.equal(details.seniority, 'Senior');
+  assert.equal(details.salary, '$179,400 - $224,300');
+  assert.match(details.structuredDetails.responsibilities, /Amazon Bedrock/);
+  assert.match(details.structuredDetails.minimumQualifications, /8\+ years/);
+  assert.match(details.structuredDetails.preferredQualifications, /Terraform/);
+  assert.match(details.structuredDetails.coreCompetencies, /mentoring teammates/);
+  assert.equal(details.companyDetails.industry, 'Hospitals and Health Care');
+  assert.equal(details.companyDetails.companySize, '501-1000 employees');
+  assert.deepEqual(
+    details.structuredDetails.jobSeekerInsights.skills.map(({ name }) => name),
+    ['Python', 'TypeScript', 'Ruby', 'Node.js', 'Large language models', 'Anthropic Claude', 'Amazon Bedrock',
+      'LangChain', 'LiteLLM', 'Model Context Protocol', 'AWS', 'Terraform', 'Git', 'APIs', 'GraphQL', 'Slack', 'Datadog'],
+  );
+});
+
 test('maps employer-specific headings and retains their original sections', async () => {
   const result = parseJobDetails({ plainText: await fixture('linkedin-job-page-varied-sections.txt') });
   const structured = result.details.structuredDetails;

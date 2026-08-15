@@ -17,6 +17,8 @@ const noisePatterns = [
   /^easy apply$/i,
   /^actively recruiting$/i,
   /^promoted$/i,
+  /^promoted by hirer/i,
+  /^responses managed (?:off|on) linkedin$/i,
   /^linkedin$/i,
   /^see who .* hired/i,
   /^your job alert/i,
@@ -286,10 +288,10 @@ function sectionFromLines(lines, startPatterns, endPatterns) {
 const postingSectionAliases = [
   { key: 'overview', patterns: [/^inside the role$/i, /^about the role$/i, /^the role$/i, /^role overview$/i, /^job summary$/i, /^position summary$/i, /^job description$/i] },
   { key: 'postingInformation', patterns: [/^posting information$/i, /^posting details$/i] },
-  { key: 'responsibilities', patterns: [/^key responsibilities$/i, /^responsibilities$/i, /^what you(?:'|’)ll do$/i, /^what you will do$/i, /^work you(?:'|’)ll do$/i, /^work you will do$/i, /^your responsibilities$/i, /^the impact you will make$/i, /^strategy & stakeholder partnership$/i, /^analytics & data science$/i, /^software & data engineering$/i, /^people leadership$/i] },
-  { key: 'minimumQualifications', patterns: [/^minimum qualifications$/i, /^required qualifications$/i, /^requirements$/i, /^required$/i, /^knowledge you should bring$/i, /^what you bring$/i, /^what we(?:'|’)re looking for$/i, /^what we are looking for$/i] },
-  { key: 'preferredQualifications', patterns: [/^preferred qualifications$/i, /^preferred$/i, /^exceptional candidates$/i, /^nice to have$/i, /^nice-to-have$/i, /^bonus points$/i, /^preferred experience$/i] },
-  { key: 'coreCompetencies', patterns: [/^core competencies$/i, /^behavioral competencies$/i, /^competencies$/i, /^skills and competencies$/i, /^a successful candidate would possess these skills$/i] },
+  { key: 'responsibilities', patterns: [/^key responsibilities$/i, /^responsibilities$/i, /^what you(?:'|’)ll do$/i, /^what you will do$/i, /^work you(?:'|’)ll do$/i, /^work you will do$/i, /^your responsibilities$/i, /^your impact$/i, /^the impact you will make$/i, /^strategy & stakeholder partnership$/i, /^analytics & data science$/i, /^software & data engineering$/i, /^people leadership$/i] },
+  { key: 'minimumQualifications', patterns: [/^minimum qualifications$/i, /^required qualifications$/i, /^requirements$/i, /^requirements for (?:this|the) role$/i, /^required$/i, /^knowledge you should bring$/i, /^what you bring$/i, /^what we(?:'|’)re looking for$/i, /^what we are looking for$/i] },
+  { key: 'preferredQualifications', patterns: [/^preferred qualifications$/i, /^preferred$/i, /^exceptional candidates$/i, /^nice to have$/i, /^nice-to-have$/i, /^bonus points$/i, /^bonus points for$/i, /^preferred experience$/i] },
+  { key: 'coreCompetencies', patterns: [/^core competencies$/i, /^behavioral competencies$/i, /^competencies$/i, /^skills and competencies$/i, /^a successful candidate would possess these skills$/i, /^you will love this job if you$/i] },
   { key: 'team', patterns: [/^the team$/i, /^about the team$/i, /^our team$/i] },
   { key: 'benefits', patterns: [/^benefits$/i, /^we take care of our team$/i, /^compensation and benefits$/i, /^what we offer$/i, /^benefits found in job post$/i] },
   { key: 'workLocation', patterns: [/^where we work$/i, /^work location$/i, /^workplace location$/i] },
@@ -297,7 +299,7 @@ const postingSectionAliases = [
   { key: 'scheduleType', patterns: [/^schedule type$/i, /^work schedule$/i] },
   { key: 'additionalInformation', patterns: [/^additional information$/i, /^other information$/i] },
   { key: 'postingStatement', patterns: [/^posting statement$/i, /^equal opportunity$/i] },
-  { key: 'qualificationSummary', patterns: [/^qualifications$/i] },
+  { key: 'qualificationSummary', patterns: [/^qualifications$/i, /^about you$/i] },
   { key: 'jobType', patterns: [/^job type$/i] },
   { key: 'shift', patterns: [/^shift$/i] },
   { key: 'primaryLocation', patterns: [/^primary location$/i] },
@@ -374,15 +376,23 @@ function linkedinPageHeader(lines) {
     const company = markerLine.replace(/^company(?: logo for)?\s*,\s*/i, '').replace(/\.$/, '').trim();
     const afterMarker = lines.slice(companyMarkerIndex + 1, companyMarkerIndex + 7);
     const companyLocation = afterMarker.map(parseCompanyLocation).find(Boolean);
-    const title = afterMarker.find((line) =>
+    const activityIndex = afterMarker.findIndex((line) => /\bago\b|\bpeople (?:clicked )?apply\b/i.test(line));
+    const beforeActivity = activityIndex > 0 ? afterMarker.slice(0, activityIndex) : [];
+    const title = [...beforeActivity].reverse().find((line) =>
+      !isNoise(line) && line.toLowerCase() !== company.toLowerCase() && !parseCompanyLocation(line),
+    ) || afterMarker.find((line) =>
       !isNoise(line) && line.toLowerCase() !== company.toLowerCase() && !parseCompanyLocation(line) &&
       !inferLocation(line.split(/\s*[·•⋅]\s*/)[0]),
     ) || '';
-    const locationLine = afterMarker.find((line) => inferLocation(line.split(/\s*[·•⋅]\s*/)[0]));
+    const activityLocation = activityIndex >= 0 ? afterMarker[activityIndex].split(/\s*[·•⋅]\s*/)[0].trim() : '';
+    const locationLine = afterMarker.find((line) =>
+      line !== title && inferLocation(line.split(/\s*[·•⋅]\s*/)[0]),
+    );
     return {
       title,
       company: companyLocation?.company || company,
-      location: companyLocation?.location || locationLine?.split(/\s*[·•⋅]\s*/)[0].trim() || '',
+      location: companyLocation?.location || (inferLocation(activityLocation) ? activityLocation : '') ||
+        locationLine?.split(/\s*[·•⋅]\s*/)[0].trim() || '',
     };
   }
 
@@ -513,22 +523,37 @@ function inferHeader(lines) {
   return { title, company, location };
 }
 
+function seniorityFromTitle(title = '') {
+  const match = String(title).match(/\b(principal|staff|senior|sr\.?|lead|mid(?:-level)?|junior|jr\.?|entry(?:-level)?|intern)\b/i);
+  if (!match) return '';
+  const value = match[1].toLowerCase().replace(/\.$/, '');
+  if (value === 'sr') return 'Senior';
+  if (value === 'jr') return 'Junior';
+  return value.replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 const skillDefinitions = [
   ['Python', 'Languages', [/\bpython\b/i]],
   ['SQL', 'Languages', [/\bsql\b/i, /structured query language/i]],
   ['JavaScript', 'Languages', [/\bjavascript\b/i]],
   ['TypeScript', 'Languages', [/\btypescript\b/i]],
   ['Java', 'Languages', [/\bjava\b/i]],
+  ['Ruby', 'Languages', [/\bruby\b/i]],
   ['C#', 'Languages', [/\bc#(?!\w)/i]],
   ['C++', 'Languages', [/\bc\+\+(?!\+)/i]],
   ['Go', 'Languages', [/\bgolang\b/i, /\bgo programming\b/i]],
   ['HTML/CSS', 'Languages', [/\bhtml\b/i, /hypertext markup language/i, /cascading style sheets/i]],
-  ['Node.js', 'Frameworks', [/\bnode(?:\.js|js)\b/i]],
+  ['Node.js', 'Frameworks', [/\bnode(?:\.js|js)?\b/i]],
   ['React', 'Frameworks', [/\breact(?:\.js|js)?\b/i]],
   ['Angular', 'Frameworks', [/\bangular\b/i]],
   ['Machine learning', 'AI & data science', [/\bmachine learning\b/i]],
   ['Generative AI', 'AI & data science', [/\bgenerative (?:artificial intelligence|ai)\b/i, /\bgenai\b/i]],
   ['Large language models', 'AI & data science', [/\blarge language models?\b/i, /\bllms?\b/i]],
+  ['Anthropic Claude', 'AI & data science', [/\banthropic\b/i, /\bclaude(?: models?)?\b/i]],
+  ['Amazon Bedrock', 'AI & data science', [/\b(?:amazon |aws )?bedrock\b/i]],
+  ['LangChain', 'AI & data science', [/\blangchain\b/i]],
+  ['LiteLLM', 'AI & data science', [/\blitellm\b/i]],
+  ['Model Context Protocol', 'AI & data science', [/\bmodel context protocol\b/i, /\bmcp(?:[ /-]tool)? gateways?\b/i]],
   ['Agentic AI', 'AI & data science', [/\bagentic (?:artificial intelligence|ai)\b/i, /\bai agents?\b/i]],
   ['RAG', 'AI & data science', [/\bretrieval[- ]augmented generation\b/i, /\brag\b/i]],
   ['NLP', 'AI & data science', [/\bnatural language processing\b/i, /\bnlp\b/i]],
@@ -551,7 +576,10 @@ const skillDefinitions = [
   ['Terraform', 'Cloud & infrastructure', [/\bterraform\b/i]],
   ['CI/CD', 'Engineering practices', [/\bci\s*\/\s*cd\b/i, /continuous integration and continuous (?:delivery|deployment)/i]],
   ['Git', 'Engineering practices', [/\bgit(?:hub|lab)?\b/i, /\bversion control\b/i]],
-  ['APIs', 'Engineering practices', [/\brest(?:ful)? apis?\b/i, /\bapi (?:design|development|integration)s?\b/i]],
+  ['APIs', 'Engineering practices', [/\brest(?:ful)?(?:\s*\/\s*graphql)? apis?\b/i, /\bapi (?:design|development|integration)s?\b/i]],
+  ['GraphQL', 'Engineering practices', [/\bgraphql\b/i]],
+  ['Slack', 'Engineering practices', [/\bslack\b/i, /\bchatops\b/i]],
+  ['Datadog', 'Engineering practices', [/\bdatadog\b/i]],
   ['Microservices', 'Engineering practices', [/\bmicroservices?\b/i]],
   ['System architecture', 'Engineering practices', [/\bsystem architecture\b/i, /\bsolution architecture\b/i, /\breference architectures?\b/i]],
 ];
@@ -669,16 +697,18 @@ export function parseJobDetails(input) {
   };
   structuredDetails.jobSeekerInsights = extractJobSeekerInsights(descriptionSection || text, structuredDetails);
 
+  const title = valueAfterLabel(lines, ['job title', 'position', 'role']) || header.title;
+
   return {
     detectedType: /about the job|job description|responsibilities|qualifications/i.test(text) ? 'job_details' : 'unstructured_text',
     details: {
       ...linkedIn,
-      title: valueAfterLabel(lines, ['job title', 'position', 'role']) || header.title,
+      title,
       company: valueAfterLabel(lines, ['company', 'organization', 'employer']) || linkedInHeader?.company || profile.company || header.company,
       location: valueAfterLabel(lines, ['location']) || header.location,
       workArrangement,
       employmentType,
-      seniority: valueAfterLabel(lines, ['seniority level', 'seniority']),
+      seniority: valueAfterLabel(lines, ['seniority level', 'seniority']) || seniorityFromTitle(title),
       salary: (valueAfterLabel(lines, ['salary', 'compensation']) || salaryMatch?.[0] || '').replace(/[.;:,]+$/, ''),
       description: descriptionSection || text,
       structuredDetails,

@@ -1,0 +1,59 @@
+0 notifications
+Home
+My Network
+Jobs
+Messaging
+Notifications
+Me
+For Business
+Company logo for, Northstar Health.
+Northstar Health
+Senior Software Engineer, AI Transformation
+United States · 3 weeks ago · Over 100 people clicked apply
+Promoted by hirer · Responses managed off LinkedIn
+Remote
+Full-time
+Apply
+Saved
+About the job
+Job overview:
+Northstar Health builds software that helps people manage chronic conditions.
+
+About you:
+You enjoy owning ambiguous infrastructure and application-development problems end-to-end.
+
+Your impact:
+Build AI-powered tools using Claude, Amazon Bedrock, LiteLLM, and MCP tool gateways.
+Integrate REST/GraphQL APIs, GitLab, and Slack chatops, and monitor systems with Datadog.
+
+You will love this job if you:
+Enjoy mentoring teammates and partnering with cross-functional stakeholders.
+
+Requirements for this role:
+8+ years of experience as a Software Engineer.
+Proficiency in Ruby, Python, TypeScript/Node, or Go.
+Hands-on experience with a modern LLM platform.
+Familiarity with AWS infrastructure and secure-by-default patterns.
+
+Bonus points for:
+Experience with LangChain and Terraform.
+
+Benefits:
+Remote-first culture
+Health, dental, and vision insurance
+401k retirement savings plan
+
+Below is a summary of salary ranges for this role.
+Zone 1: $179,400 - $224,300
+Zone 2: $171,600 - $214,500
+Set alert for similar jobs
+Artificial Intelligence Engineer, United States
+About the company
+Northstar Health
+254,304 followers
+Follow
+Hospitals and Health Care
+501-1000 employees
+998 on LinkedIn
+Northstar provides virtual care supported by human-led teams and modern technology.
+More jobs
